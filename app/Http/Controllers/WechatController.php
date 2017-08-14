@@ -47,4 +47,9 @@ class WechatController extends Controller
         $handler = new ChatTunnelHandler();
         TunnelService::handle($handler, array('checkLogin' => TRUE));
     }
+
+    public function scan(Request $request)
+    {
+        Log::info($request->all());
+    }
 }
