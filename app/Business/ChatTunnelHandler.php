@@ -2,53 +2,51 @@
 
 namespace App\Business;
 
-use QCloud_WeApp_SDK\Tunnel\ITunnelHandler as ITunnelHandler;
-use QCloud_WeApp_SDK\Tunnel\TunnelService as TunnelService;
+use \QCloud_WeApp_SDK\Tunnel\TunnelService;
+use \QCloud_WeApp_SDK\Tunnel\ITunnelHandler;
+use Log;
 
-/**
- * 实现 WebSocket 信道处理器
- * 本示例配合客户端 Demo 实现一个简单的聊天室功能
- */
 class ChatTunnelHandler implements ITunnelHandler {
+    // TODO: 实现 onRequest 方法，处理信道连接请求
     /**
      * 实现 onRequest 方法
      * 在客户端请求 WebSocket 信道连接之后，
      * 会调用 onRequest 方法，此时可以把信道 ID 和用户信息关联起来
      */
     public function onRequest($tunnelId, $userInfo) {
+
         if (is_array($userInfo)) {
             $data = self::loadData();
-
             // 保存 信道ID => 用户信息 的映射
             $data['userMap'][$tunnelId] = $userInfo;
-
             self::saveData($data);
         }
     }
 
+    // TODO: 实现 onConnect 方法，处理信道连接事件
     /**
      * 实现 onConnect 方法
      * 在客户端成功连接 WebSocket 信道服务之后会调用该方法，
      * 此时通知所有其它在线的用户当前总人数以及刚加入的用户是谁
      */
     public function onConnect($tunnelId) {
-        $data = self::loadData();
 
+        $data = self::loadData();
         if (array_key_exists($tunnelId, $data['userMap'])) {
             $data['connectedTunnelIds'][] = $tunnelId;
             self::saveData($data);
-
             self::broadcast('people', array(
                 'total' => count($data['connectedTunnelIds']),
                 'enter' => $data['userMap'][$tunnelId],
             ));
-
         } else {
-            debug("Unknown tunnelId({$tunnelId}) was connectd, close it");
+            Log::debug("Unknown tunnelId({$tunnelId}) was connectd, close it");
             self::closeTunnel($tunnelId);
         }
+
     }
 
+    // TODO: 实现 onMessage 方法，处理信道消息
     /**
      * 实现 onMessage 方法
      * 客户端推送消息到 WebSocket 信道服务器上后，会调用该方法，此时可以处理信道的消息。
@@ -59,7 +57,6 @@ class ChatTunnelHandler implements ITunnelHandler {
         switch ($type) {
         case 'speak':
             $data = self::loadData();
-
             if (isset($data['userMap'][$tunnelId])) {
                 self::broadcast('speak', array(
                     'who' => $data['userMap'][$tunnelId],
@@ -70,32 +67,30 @@ class ChatTunnelHandler implements ITunnelHandler {
             }
             break;
         }
+
     }
 
+    // TODO: 实现 onClose 方法，处理信道关闭事件
     /**
      * 实现 onClose 方法
      * 客户端关闭 WebSocket 信道或者被信道服务器判断为已断开后，
      * 会调用该方法，此时可以进行清理及通知操作
      */
     public function onClose($tunnelId) {
-        $data = self::loadData();
 
+        $data = self::loadData();
         if (!array_key_exists($tunnelId, $data['userMap'])) {
-            debug('[onClose] 无效的信道 ID =>', $tunnelId);
+            Log::debug('[onClose] 无效的信道 ID =>', $tunnelId);
             self::closeTunnel($tunnelId);
             return;
         }
-
         $leaveUser = $data['userMap'][$tunnelId];
         unset($data['userMap'][$tunnelId]);
-
         $index = array_search($tunnelId, $data['connectedTunnelIds']);
         if ($index !== FALSE) {
             array_splice($data['connectedTunnelIds'], $index, 1);
         }
-
         self::saveData($data);
-
         // 聊天室没有人了（即无信道ID）不再需要广播消息
         if (count($data['connectedTunnelIds']) > 0) {
             self::broadcast('people', array(
@@ -111,25 +106,20 @@ class ChatTunnelHandler implements ITunnelHandler {
     private static function broadcast($type, $content) {
         $data = self::loadData();
         $result = TunnelService::broadcast($data['connectedTunnelIds'], $type, $content);
-
         if ($result['code'] === 0 && !empty($result['data']['invalidTunnelIds'])) {
             $invalidTunnelIds = $result['data']['invalidTunnelIds'];
             debug('检测到无效的信道 IDs =>', $invalidTunnelIds);
-
             // 从`userMap`和`connectedTunnelIds`将无效的信道记录移除
             foreach ($invalidTunnelIds as $tunnelId) {
                 unset($data['userMap'][$tunnelId]);
-
                 $index = array_search($tunnelId, $data['connectedTunnelIds']);
                 if ($index !== FALSE) {
                     array_splice($data['connectedTunnelIds'], $index, 1);
                 }
             }
-
             self::saveData($data);
         }
     }
-
     /**
      * 调用 TunnelService::closeTunnel() 关闭信道
      * @param  String $tunnelId 信道ID
@@ -146,14 +136,11 @@ class ChatTunnelHandler implements ITunnelHandler {
     private static function loadData() {
         $filepath = self::getDataFilePath();
         $defaultData = array('userMap' => array(), 'connectedTunnelIds' => array());
-
         if (!file_exists($filepath)) {
             return $defaultData;
         }
-
         $content = file_get_contents($filepath);
         $data = json_decode($content, TRUE);
-
         return (is_array($data) ? $data : $defaultData);
     }
 
@@ -164,20 +151,19 @@ class ChatTunnelHandler implements ITunnelHandler {
      */
     private static function saveData($data) {
         $filepath = self::getDataFilePath();
-
         if (version_compare(PHP_VERSION, '5.4.0') >= 0) {
             $content = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
         } else {
             $content = json_encode($data);
         }
-
         file_put_contents($filepath, $content, LOCK_EX);
     }
-
     /**
      * 聊天室存取 JSON 数据对应的文件路径
      */
     private static function getDataFilePath() {
         return (storage_path() . DIRECTORY_SEPARATOR . 'chat_data.json');
     }
+
 }
+

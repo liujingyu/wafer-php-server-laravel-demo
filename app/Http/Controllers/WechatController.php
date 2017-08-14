@@ -43,6 +43,7 @@ class WechatController extends Controller
 
     public function tunnel()
     {
+
         $handler = new ChatTunnelHandler();
         TunnelService::handle($handler, array('checkLogin' => TRUE));
     }

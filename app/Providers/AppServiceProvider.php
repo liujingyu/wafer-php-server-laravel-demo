@@ -35,7 +35,7 @@ class AppServiceProvider extends ServiceProvider
 		 * Conf::setTunnelSignatureKey($config['tunnelSignatureKey']);
 		 */
 		// 设置网络请求超时时长（可选，默认 30 秒）
-		Conf::setNetworkTimeout(env('networkTimeout'));
+		// Conf::setNetworkTimeout(env('networkTimeout'));
 		/**
 		 * --------------------------------------------------------------------
 		 * 设置 SDK 日志输出配置（主要是方便调试）
