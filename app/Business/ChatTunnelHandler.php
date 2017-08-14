@@ -108,7 +108,7 @@ class ChatTunnelHandler implements ITunnelHandler {
         $result = TunnelService::broadcast($data['connectedTunnelIds'], $type, $content);
         if ($result['code'] === 0 && !empty($result['data']['invalidTunnelIds'])) {
             $invalidTunnelIds = $result['data']['invalidTunnelIds'];
-            debug('检测到无效的信道 IDs =>', $invalidTunnelIds);
+            Log::debug('检测到无效的信道 IDs =>', $invalidTunnelIds);
             // 从`userMap`和`connectedTunnelIds`将无效的信道记录移除
             foreach ($invalidTunnelIds as $tunnelId) {
                 unset($data['userMap'][$tunnelId]);
