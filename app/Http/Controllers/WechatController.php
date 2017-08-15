@@ -10,6 +10,14 @@ use Log;
 
 class WechatController extends Controller
 {
+
+    const API = 'https://api.douban.com/v2/book/isbn/%s';
+
+    protected function getISBNRequestUrl($isbn)
+    {
+        return sprintf(self::API, $isbn);
+    }
+
     public function login()
     {
         $result = LoginService::login();
@@ -37,8 +45,8 @@ class WechatController extends Controller
 				'userInfo' => $result['data']['userInfo'],
 			),
 		);
+
         return response()->json($response);
-		// echo json_encode($response, JSON_FORCE_OBJECT);
     }
 
     public function tunnel()
@@ -50,6 +58,12 @@ class WechatController extends Controller
 
     public function scan(Request $request)
     {
-        Log::info($request->all());
+        $isbn = $request->input('isbn', null);
+        if ($isbn) {
+            $url = $this->getISBNRequestUrl($isbn);
+            $client = new GuzzleHttp\Client();
+            $response = $client->get($url);
+            Log::info($response);
+        }
     }
 }
