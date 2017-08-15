@@ -59,11 +59,13 @@ class WechatController extends Controller
     public function scan(Request $request)
     {
         $isbn = $request->input('isbn', null);
+       Log::info($isbn);
         if ($isbn) {
             $url = $this->getISBNRequestUrl($isbn);
-            $client = new GuzzleHttp\Client();
+            $client = new \GuzzleHttp\Client();
             $response = $client->get($url);
-            Log::info($response);
+            return response()->make($response->getBody()->getContents());
         }
+       return response()->make('{}');
     }
 }
